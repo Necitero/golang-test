@@ -2,6 +2,23 @@
 
 This is my testing ground for experimenting with Go.
 
+## Development
+
+### Requirements
+
+- Go (1.25.X)
+
+- Docker, docker-compose
+
+- Node (latest)
+
+### Running
+
+```bash
+# Build and start backend container
+docker-compose build backend && docker-compose up
+```
+
 ## 🎯 Goal
 
 The goal is to develop a fully functional ToDo application that can be sorted by...

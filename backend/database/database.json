@@ -1,4 +1,14 @@
 {
-  "todos": []
+  "todos": [
+    {
+      "todo": {
+        "headline": "Kiss the homies goodnight",
+        "note": "it aint gay, dw",
+        "status": "open",
+        "due_date": "2026-05-03T14:00:00Z"
+      },
+      "id": 0
+    }
+  ]
 }
 
