@@ -1,34 +1,57 @@
 package database
 
 import (
-	"encoding/json"
-	"necitero/golang-test/models"
-	"os"
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
+	"necitero/golang-test/utils"
 )
 
-var DATABASE_PATH string = "./database/database.json"
+var TableName string = "todos"
 
-func OpenDatabase() (*models.DBData, error) {
-	var data models.DBData
-	content, err := os.ReadFile(DATABASE_PATH)
+func getDatabase() *sql.DB {
+	var connection string = "app_user:app_password@tcp(db:3306)/app_db?parseTime=true"
+	db, err := sql.Open("mysql", connection)
 	if err != nil {
-		return &data, err
+		utils.Logger("DB", "Error opening database. Panicking.")
+		panic(err)
+	} else if err = db.Ping(); err != nil {
+		utils.Logger("DB", "Error pinging database. Panicking.")
+		panic(err)
 	}
-
-	if err := json.Unmarshal(content, &data); err != nil {
-		return &data, err
-	}
-	return &data, nil
+	return db
 }
 
-func UpdateDatabase(db *models.DBData, todo *models.ToDo) {
-	var entry models.DBEntry
-	entry.Todo = *todo
-	entry.Index = len(db.Todos)
-	db.Todos = append(db.Todos, entry)
-	bytes, err := json.MarshalIndent(db, "", "  ")
+func GetRow(query string) *sql.Row {
+	db := getDatabase()
+	data := db.QueryRow(query)
+	return data
+}
+
+func ExecQuery(query string) (sql.Result, bool) {
+	db := getDatabase()
+	data, err := db.Exec(query)
+	defer db.Close()
 	if err != nil {
-		return
+		msg := "Error executing query: " + query
+		utils.Logger("DB", msg)
+		return data, false
 	}
-	os.WriteFile(DATABASE_PATH, bytes, 0644)
+	return data, true
+}
+
+func SetupDatabase() {
+	// Table create string
+	var tableCreate string = "id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY"
+	tableCreate += ", headline TEXT NOT NULL"
+	tableCreate += ", note TEXT"
+	tableCreate += ", status TEXT NOT NULL"
+	tableCreate += ", urgency INT NOT NULL"
+	tableCreate += ", due_date DATETIME"
+
+	var instruction string = "CREATE TABLE IF NOT EXISTS " + TableName + " (" + tableCreate + ")"
+	_, success := ExecQuery(instruction)
+
+	if success {
+		utils.Logger("DB", "Successfully created database \"todos\"")
+	}
 }

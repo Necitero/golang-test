@@ -1,39 +1,30 @@
 package handlers
 
 import (
-	"fmt"
-	"github.com/gin-gonic/gin"
 	"necitero/golang-test/database"
 	"necitero/golang-test/models"
 	"necitero/golang-test/responses"
+	"necitero/golang-test/utils"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 func GetTodoItem(ctx *gin.Context) {
-	db, err := database.OpenDatabase()
-	if err != nil {
-		responses.CouldNotRetrieveDB(ctx)
-	}
 	id := ctx.Param("id")
-	var entry *models.DBEntry
-	for i := 0; i < len(db.Todos); i++ {
-		index := db.Todos[i].Index
-		if strconv.Itoa(index) == id {
-			entry = &db.Todos[i]
-		}
-	}
-	if entry == nil {
+	query := "SELECT * FROM " + database.TableName + " WHERE id = " + id + " LIMIT 1"
+	utils.Logger("TODO", query)
+	data := database.GetRow(query)
+	var todo models.DatabaseEntry
+	err := data.Scan(&todo.Id, &todo.Headline, &todo.Note, &todo.Status, &todo.UrgencyLevel, &todo.DueDate)
+	if err != nil {
 		responses.CouldNotFindEntry(ctx)
-	} else {
-		responses.SuccessfulToDo(ctx, entry)
+		panic(err)
 	}
+	responses.SuccessfulToDo(ctx, &todo)
 }
 
 func AddTodoItem(ctx *gin.Context) {
-	db, err := database.OpenDatabase()
-	if err != nil {
-		responses.CouldNotRetrieveDB(ctx)
-	}
 	header := ctx.Request.Header
 	requestType := header.Get("Content-Type")
 	if requestType != "application/json" {
@@ -46,7 +37,30 @@ func AddTodoItem(ctx *gin.Context) {
 		responses.InvalidBodyContent(ctx)
 		return
 	}
-	fmt.Println("DATA", todo.Headline, todo.Note, todo.Status, todo.DueDate)
-	database.UpdateDatabase(db, &todo)
-	responses.SuccessfulResponse(ctx, "ToDo item added")
+	if todo.Status == "" {
+		todo.Status = "not_started"
+	}
+
+	// Set insertion query
+	query := "INSERT INTO " + database.TableName + " (headline, note, status, urgency, due_date)"
+	query += " VALUES( "
+	query += utils.DBStringInsert(todo.Headline, false)
+	query += utils.DBStringInsert(todo.Note, false)
+	query += utils.DBStringInsert(todo.Status, false)
+	query += strconv.Itoa(todo.UrgencyLevel) + ","
+	if todo.DueDate != nil {
+		dateStr := todo.DueDate.Format("2006-01-02 15:04:05")
+		query += utils.DBStringInsert(dateStr, true)
+	} else {
+		query += "NULL"
+	}
+	query += " )"
+	utils.Logger("DB", "Inserting with query: "+query)
+
+	_, success := database.ExecQuery(query)
+	if !success {
+		responses.QueryFailed(ctx, query)
+		return
+	}
+	responses.SuccessfulResponse(ctx, "Created new ToDo: "+todo.Headline)
 }

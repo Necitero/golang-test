@@ -19,7 +19,7 @@ func InvalidBodyContent(ctx *gin.Context) {
 	})
 }
 
-func SuccessfulToDo(ctx *gin.Context, todo *models.DBEntry) {
+func SuccessfulToDo(ctx *gin.Context, todo *models.DatabaseEntry) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": todo,
 	})
@@ -40,5 +40,11 @@ func CouldNotRetrieveDB(ctx *gin.Context) {
 func CouldNotFindEntry(ctx *gin.Context) {
 	ctx.JSON(http.StatusNotFound, gin.H{
 		"message": "Could not find entry in database",
+	})
+}
+
+func QueryFailed(ctx *gin.Context, query string) {
+	ctx.JSON(http.StatusInternalServerError, gin.H{
+		"message": "Could not execute query: " + query,
 	})
 }
