@@ -1,3 +1,6 @@
+> [!WARNING]
+> I am switching to (Codeberg)[https://codeberg.org/Necitero]. This repository will not be updated anymore
+
 # 🦫 Golang Test
 
 This is my testing ground for experimenting with Go.
